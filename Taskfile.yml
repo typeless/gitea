@@ -1,0 +1,39 @@
+# https://taskfile.org
+
+version: '2'
+
+vars:
+  GREETING: Hello, World!
+  DIST: dist
+  IMPORT: code.gitea.io/gitea
+  GO111MODULE: off
+  GO: go
+  EXECUTABLE: '{{if eq OS "windows"}}gitea.exe{{else}}gitea{{end}}'
+  SED_INPLACE: '{{if eq OS "darwin"}}sed -i ''{{else}}sed -i{{end}}'
+  BINDATA: modules/{options,public,templates}/bindata.go
+  GOFILES:
+    sh: find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go"
+  GOFMT: gofmt -s
+  GOFLAGS: -i -v
+  EXTRA_GOFLAGS:
+  VERSION: '{{trimAll "v" "$DRONE_TAG"}}'
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  show-vars:
+    cmds:
+      - echo "OS={{OS}}"
+      - echo "EXECUTABLE={{.EXECUTABLE}}"
+      - echo "SED_INPLACE={{.SED_INPLACE}}"
+      - echo "BINDATA={{.BINDATA}}"
+      - echo "GOFILES={{.GOFILES}}"
+      - echo "GOFLAGS={{.GOFLAGS}}"
+      - echo "EXTRA_GOFLAGS={{.EXTRA_GOFLAGS}}"
+      - echo "VERSION={{.VERSION}}"
+    silent: true
+
+
