@@ -1,22 +1,58 @@
 # https://taskfile.org
 
 version: '2'
+expansions: 3
+
+env:
+  GO: go
+  GOFMT: gofmt -s
+  GO111MODULE: off
+  GOFLAGS: -i -v
+  EXTRA_GOFLAGS:
+  LDFLAGS: '-X \"main.Version={{.GITEA_VERSION}}\" -X \"main.Tags={{with .TAGS}}{{.TAGS}}{{end}}\"'
 
 vars:
   GREETING: Hello, World!
   DIST: dist
   IMPORT: code.gitea.io/gitea
-  GO111MODULE: off
-  GO: go
-  EXECUTABLE: '{{if eq OS "windows"}}gitea.exe{{else}}gitea{{end}}'
-  SED_INPLACE: '{{if eq OS "darwin"}}sed -i ''{{else}}sed -i{{end}}'
+  EXECUTABLE: |
+    {{- if eq OS "windows" -}}
+      gitea.exe
+    {{- else -}}
+      gitea
+    {{- end -}}
+  SED_INPLACE: |
+    {{- if eq OS "darwin" -}}
+      sed -i ''
+    {{- else -}}
+      sed -i
+    {{- end -}}
+
   BINDATA: modules/{options,public,templates}/bindata.go
   GOFILES:
     sh: find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go"
-  GOFMT: gofmt -s
-  GOFLAGS: -i -v
-  EXTRA_GOFLAGS:
-  VERSION: '{{trimAll "v" "$DRONE_TAG"}}'
+  VERSION: |
+    {{- with .DRONE_TAG -}}
+      {{trimAll "v" .DRONE_TAG}}
+    {{- else -}}
+      {{- with .DRONE_BRANCH -}}
+        {{trimPrefix "release/v" .DRONE_BRANCH}}
+      {{- else -}}
+        master
+      {{- end -}}
+    {{- end -}}
+
+  GITEA_TAG:
+    sh: git describe --tags --always | sed 's/-/+/' | sed 's/^v//'
+  GITEA_VERSION: |
+    {{- with .DRONE_TAG -}}
+      {{.VERSION}}
+    {{- else -}}
+      {{.GITEA_TAG}}
+    {{- end -}}
+
+  PACKAGES_WITH_INTEGRATIONS:
+    #sh: $GO list ./... | grep -v /vendor/
 
 tasks:
   default:
@@ -30,10 +66,13 @@ tasks:
       - echo "EXECUTABLE={{.EXECUTABLE}}"
       - echo "SED_INPLACE={{.SED_INPLACE}}"
       - echo "BINDATA={{.BINDATA}}"
-      - echo "GOFILES={{.GOFILES}}"
-      - echo "GOFLAGS={{.GOFLAGS}}"
-      - echo "EXTRA_GOFLAGS={{.EXTRA_GOFLAGS}}"
+        #      - echo "GOFILES={{.GOFILES}}"
+      - echo "GOFLAGS=$GOFLAGS"
+      - echo "EXTRA_GOFLAGS=$EXTRA_GOFLAGS"
       - echo "VERSION={{.VERSION}}"
+      - echo "GITEA_VERSION={{.GITEA_VERSION}}"
+      - echo "LDFLAGS=$LDFLAGS"
+      - echo "PACKAGES_WITH_INTEGRATIONS={{.PACKAGES_WITH_INTEGRATIONS}}"
     silent: true
 
 
