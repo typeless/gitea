@@ -4,15 +4,17 @@ version: '2'
 expansions: 3
 
 env:
-  GO: go
-  GOFMT: gofmt -s
-  GO111MODULE: off
-  GOFLAGS: -i -v
-  EXTRA_GOFLAGS:
-  LDFLAGS: '-X \"main.Version={{.GITEA_VERSION}}\" -X \"main.Tags={{with .TAGS}}{{.TAGS}}{{end}}\"'
 
 vars:
   GREETING: Hello, World!
+
+  GO: go
+  GOFLAGS: -i -v
+  EXTRA_GOFLAGS:
+  GO111MODULE: off
+  LDFLAGS: '-X \"main.Version={{.GITEA_VERSION}}\" -X \"main.Tags={{with .TAGS}}{{.TAGS}}{{end}}\"'
+  GOFMT: gofmt -s
+
   DIST: dist
   IMPORT: code.gitea.io/gitea
   EXECUTABLE: |
@@ -21,6 +23,7 @@ vars:
     {{- else -}}
       gitea
     {{- end -}}
+
   SED_INPLACE: |
     {{- if eq OS "darwin" -}}
       sed -i ''
@@ -51,14 +54,24 @@ vars:
       {{.GITEA_TAG}}
     {{- end -}}
 
-  PACKAGES_WITH_INTEGRATIONS:
-    #sh: $GO list ./... | grep -v /vendor/
+  PACKAGES:
+    sh: {{.GO | default "go"}} list ./... | grep -v code.gitea.io/gitea/integrations
+
+  SOURCES:
+    sh: find . -name "*.go" -type f
+
 
 tasks:
   default:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+
+  executable:
+    cmds:
+      - $GO build $GOFLAGS $EXTRA_GOFLAGS -tags '$TAGS' -ldflags '-s -w $LDFLAGS' -o {{.EXECUTABLE}}
+    sources:
+      - {{.SOURCES}}
 
   show-vars:
     cmds:
@@ -72,7 +85,7 @@ tasks:
       - echo "VERSION={{.VERSION}}"
       - echo "GITEA_VERSION={{.GITEA_VERSION}}"
       - echo "LDFLAGS=$LDFLAGS"
-      - echo "PACKAGES_WITH_INTEGRATIONS={{.PACKAGES_WITH_INTEGRATIONS}}"
+      - echo "PACKAGES={{.PACKAGES}}"
     silent: true
 
 
