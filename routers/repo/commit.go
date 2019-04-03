@@ -113,7 +113,7 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 
-	var keywords, authors, committers []string
+	var keywords, authors, committers, files []string
 	var after, before string
 
 	fields := strings.Fields(query)
@@ -123,6 +123,22 @@ func SearchCommits(ctx *context.Context) {
 			authors = append(authors, strings.TrimPrefix(k, "author:"))
 		case strings.HasPrefix(k, "committer:"):
 			committers = append(committers, strings.TrimPrefix(k, "committer:"))
+		case strings.HasPrefix(k, "file:"):
+			spec := strings.TrimPrefix(k, "file:")
+			xs := strings.Split(spec, ":")
+			if len(xs) != 2 {
+				break
+			}
+			ys := strings.Split(xs[0], ",")
+
+			// If the # of fields separated by , is either 2 or 1, it is a valid spec.
+			// Otherwise, we just ignore it
+			switch len(ys) {
+			case 1:
+				fallthrough
+			case 2:
+				files = append(files, spec)
+			}
 		case strings.HasPrefix(k, "after:"):
 			after = strings.TrimPrefix(k, "after:")
 		case strings.HasPrefix(k, "before:"):
@@ -134,7 +150,7 @@ func SearchCommits(ctx *context.Context) {
 
 	all := ctx.QueryBool("all")
 
-	commits, err := ctx.Repo.Commit.SearchCommits(keywords, authors, committers, after, before, all)
+	commits, err := ctx.Repo.Commit.SearchCommits(keywords, authors, committers, files, after, before, all)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return

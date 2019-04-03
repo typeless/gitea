@@ -237,7 +237,7 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id SHA1, keywords, authors, committers []string, after, before string, all bool) (*list.List, error) {
+func (repo *Repository) searchCommits(id SHA1, keywords, authors, committers, files []string, after, before string, all bool) (*list.List, error) {
 	cmd := NewCommand("log", id.String(), "-100", "-i", prettyLogFormat)
 	if len(keywords) > 0 {
 		for _, v := range keywords {
@@ -252,6 +252,11 @@ func (repo *Repository) searchCommits(id SHA1, keywords, authors, committers []s
 	if len(committers) > 0 {
 		for _, v := range committers {
 			cmd.AddArguments("--committer=" + v)
+		}
+	}
+	if len(files) > 0 {
+		for _, v := range files {
+			cmd.AddArguments("-L " + v)
 		}
 	}
 	if after != "" {
