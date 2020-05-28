@@ -62,7 +62,12 @@ MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 ifneq ($(RACE_ENABLED),)
-	GOTESTFLAGS ?= -race
+	ifeq ($(RACE_ENABLED),"all")
+		GOFLAGS += -race
+		GOTESTFLAGS += -race
+	else
+		GOTESTFLAGS ?= -race
+	endif
 endif
 
 STORED_VERSION_FILE := VERSION
@@ -359,7 +364,7 @@ test-check:
 .PHONY: test\#%
 test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test -mod=vendor -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@$(GO) test -mod=vendor $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
