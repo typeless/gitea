@@ -45,8 +45,8 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 
 	// Release one, then wait up to 10 seconds for it to complete.
 	queueMutex.Lock()
+	defer queueMutex.Unlock()
 	archiveQueueReleaseCond.Signal()
-	queueMutex.Unlock()
 	timeout := time.Now().Add(10 * time.Second)
 	for {
 		nowQueued = len(archiveInProgress)
