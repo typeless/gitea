@@ -16,16 +16,17 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
 	"gopkg.in/ini.v1"
@@ -61,6 +62,8 @@ func InstallInit(next http.Handler) http.Handler {
 				"DbOptions":     setting.SupportedDatabases,
 				"i18n":          locale,
 				"Language":      locale.Language(),
+				"Lang":          locale.Language(),
+				"AllLangs":      translation.AllLangs(),
 				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 				"TmplLoadTimes": func() string {
@@ -69,6 +72,12 @@ func InstallInit(next http.Handler) http.Handler {
 				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
 			},
 		}
+		for _, lang := range translation.AllLangs() {
+			if lang.Lang == locale.Language() {
+				ctx.Data["LangName"] = lang.Name
+				break
+			}
+		}
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
 	})
@@ -76,7 +85,7 @@ func InstallInit(next http.Handler) http.Handler {
 
 // Install render installation page
 func Install(ctx *context.Context) {
-	form := auth.InstallForm{}
+	form := forms.InstallForm{}
 
 	// Database settings
 	form.DbHost = setting.Database.Host
@@ -146,12 +155,12 @@ func Install(ctx *context.Context) {
 	form.PasswordAlgorithm = setting.PasswordHashAlgo
 
 	middleware.AssignForm(form, ctx.Data)
-	ctx.HTML(200, tplInstall)
+	ctx.HTML(http.StatusOK, tplInstall)
 }
 
 // InstallPost response for submit install items
 func InstallPost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*auth.InstallForm)
+	form := *web.GetForm(ctx).(*forms.InstallForm)
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 
@@ -165,7 +174,7 @@ func InstallPost(ctx *context.Context) {
 			ctx.Data["Err_Admin"] = true
 		}
 
-		ctx.HTML(200, tplInstall)
+		ctx.HTML(http.StatusOK, tplInstall)
 		return
 	}
 
@@ -400,7 +409,7 @@ func InstallPost(ctx *context.Context) {
 	}
 
 	// Re-read settings
-	PostInstallInit(ctx.Req.Context())
+	PostInstallInit(ctx)
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -450,11 +459,11 @@ func InstallPost(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 
 	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-	ctx.HTML(200, tplPostInstall)
+	ctx.HTML(http.StatusOK, tplPostInstall)
 
 	// Now get the http.Server from this request and shut it down
 	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-	srv := ctx.Req.Context().Value(http.ServerContextKey).(*http.Server)
+	srv := ctx.Value(http.ServerContextKey).(*http.Server)
 	go func() {
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
