@@ -64,7 +64,7 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
-ifeq ($(RACE_ENABLED),true)
+ifneq ($(RACE_ENABLED),)
 	GOFLAGS += -race
 	GOTESTFLAGS += -race
 endif
@@ -359,7 +359,7 @@ test: test-frontend test-backend
 
 .PHONY: test-backend
 test-backend:
-	@echo "Running go test with -tags '$(TEST_TAGS)'..."
+	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-frontend
