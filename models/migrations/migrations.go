@@ -311,6 +311,16 @@ var migrations = []Migration{
 	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 	// v180 -> v181
 	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	// v181 -> v182
+	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
+	NewMigration("Create PushMirror table", createPushMirrorTable),
+	// v184 -> v185
+	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	// v185 -> v186
+	NewMigration("Add new table repo_archiver", addRepoArchiver),
 }
 
 // GetCurrentDBVersion returns the current db version
