@@ -411,7 +411,7 @@ steps:
 
   - name: update
     pull: default
-    image: alpine:3.13
+    image: alpine:3.14
     commands:
       - ./build/update-locales.sh
 
@@ -724,7 +724,7 @@ steps:
 
   - name: publish
     pull: always
-    image: plugins/docker:linux-amd64
+    image: techknowlogick/drone-docker:latest
     settings:
       auto_tag: true
       auto_tag_suffix: linux-amd64
@@ -741,7 +741,7 @@ steps:
         - pull_request
 
   - name: publish-rootless
-    image: plugins/docker:linux-amd64
+    image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: true
@@ -779,7 +779,7 @@ trigger:
 steps:
   - name: dryrun
     pull: always
-    image: plugins/docker:linux-arm64
+    image: techknowlogick/drone-docker:latest
     settings:
       dry_run: true
       repo: gitea/gitea
@@ -821,7 +821,7 @@ steps:
 
   - name: publish
     pull: always
-    image: plugins/docker:linux-arm64
+    image: techknowlogick/drone-docker:latest
     settings:
       auto_tag: true
       auto_tag_suffix: linux-arm64
@@ -841,7 +841,7 @@ steps:
         - pull_request
 
   - name: publish-rootless
-    image: plugins/docker:linux-arm64
+    image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: true

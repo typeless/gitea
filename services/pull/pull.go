@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -302,7 +303,11 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		for _, pr := range prs {
 			divergence, err := GetDiverging(pr)
 			if err != nil {
-				log.Error("GetDiverging: %v", err)
+				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
+				} else {
+					log.Error("GetDiverging: %v", err)
+				}
 			} else {
 				err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
 				if err != nil {
@@ -528,6 +533,8 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 	return nil
 }
 
+var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
+
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	if err := pr.LoadIssue(); err != nil {
@@ -583,10 +590,13 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	stringBuilder := strings.Builder{}
 
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-		stringBuilder.WriteString(pr.Issue.Content)
+		message := strings.TrimSpace(pr.Issue.Content)
+		stringBuilder.WriteString(message)
 		if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
-			stringBuilder.WriteRune('\n')
+			if !commitMessageTrailersPattern.MatchString(message) {
+				stringBuilder.WriteRune('\n')
+			}
 		}
 	}
 
@@ -654,13 +664,6 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 				element = element.Next()
 			}
 			skip += limit
-		}
-	}
-
-	if len(authors) > 0 {
-		if _, err := stringBuilder.WriteRune('\n'); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
 		}
 	}
 
